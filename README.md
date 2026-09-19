@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 # 🇧🇫 Burkina Market — foundation réelle, sans données simulées
 
 Ce dépôt est une base de production structurée pour **Burkina Market**. Il privilégie une architecture modulaire et une règle importante : **aucun produit, vendeur, commande, statistique, paiement ou OTP fictif n'est injecté dans l'application**.
@@ -57,3 +58,39 @@ Web : `/`, `/products`, `/login`, `/seller`, `/checkout`, `/admin`.
 API : `/health`, `/v1/categories`, `/v1/products`, `/v1/auth/*`, `/v1/me`, `/v1/seller/*`, `/v1/products` (vendeur), `/v1/orders`, `/v1/orders/:id/delivery/confirm`, `/v1/admin/*`.
 
 Le dépôt contient aussi les trois références UI fournies dans `design-references/`.
+=======
+# Burkina Market — design officiel
+
+Cette base implémente en React/Vite le design fourni dans la maquette panoramique Burkina Market.
+
+## Écrans intégrés
+
+- Accueil
+- Recherche
+- Catégories
+- Détail produit
+- Panier
+- Boutique
+- Services
+- Commandes
+- Profil
+- Notifications
+- Paramètres
+- Espace vendeur
+- Centre de contrôle administrateur
+- Commentaires / vues secondaires
+- À propos
+
+## Lancer
+
+```bash
+npm install
+npm run dev
+```
+
+Le projet est volontairement sans backend et sans service payant à ce stade. Les données produits sont locales afin de garder une base légère et facilement connectable à une API plus tard.
+
+## Direction visuelle
+
+La maquette fournie sert de référence : bleu Burkina Market, accents jaune/orange, cartes arrondies, ombres douces, navigation basse, filtres en pastilles, fiches produit compactes et espaces séparés pour client, vendeur et administrateur.
+>>>>>>> ed553effc977161008ef658c7ceb47100c98ee26
