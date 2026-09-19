@@ -10,6 +10,9 @@ on:
       - ".github/workflows/android-apk.yml"
   workflow_dispatch:
 
+permissions:
+  contents: write
+
 jobs:
   android-apk:
     runs-on: ubuntu-latest
@@ -41,13 +44,23 @@ jobs:
         working-directory: apps/mobile/android
         run: ./gradlew assembleDebug --no-daemon
 
-      - name: Rename APK
+      - name: Prepare APK
         run: cp apps/mobile/android/app/build/outputs/apk/debug/app-debug.apk Burkina-Market.apk
 
-      - name: Upload Burkina Market APK
+      - name: Upload workflow artifact
         uses: actions/upload-artifact@v4
         with:
           name: Burkina-Market-apk
           path: Burkina-Market.apk
           if-no-files-found: error
           retention-days: 30
+
+      - name: Publish stable GitHub Release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          if gh release view android-latest >/dev/null 2>&1; then
+            gh release upload android-latest Burkina-Market.apk --clobber
+          else
+            gh release create android-latest Burkina-Market.apk               --title "Burkina Market APK"               --notes "APK Android compilé automatiquement depuis la branche main."
+          fi
