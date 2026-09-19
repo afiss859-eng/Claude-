@@ -1,0 +1,296 @@
+generator client { provider = "prisma-client-js" }
+datasource db { provider = "postgresql" url = env("DATABASE_URL") }
+
+enum UserType { BUYER SELLER ARTISAN PRODUCER COOPERATIVE MANUFACTURER WHOLESALER DISTRIBUTOR BRAND BUSINESS INSTITUTION DRIVER ADMIN }
+enum AccountStatus { PENDING ACTIVE SUSPENDED LOCKED DELETED }
+enum KycStatus { PENDING IN_REVIEW APPROVED REJECTED }
+enum DeliveryPolicy { SELLER_DELIVERS NO_DELIVERY LIMITED_ZONES }
+enum ShopStatus { DRAFT PENDING_ACTIVE ACTIVE SUSPENDED }
+enum ProductStatus { DRAFT PUBLISHED PAUSED ARCHIVED }
+enum OrderStatus { CREATED PAYMENT_PENDING CONFIRMED PREPARING SHIPPED OUT_FOR_DELIVERY DELIVERED CANCELLED DISPUTED REFUNDED }
+enum PaymentStatus { PENDING AUTHORIZED CAPTURED FAILED REFUNDED PARTIALLY_REFUNDED CANCELLED }
+enum LedgerEntryType { PAYMENT COMMISSION FEE REFUND SELLER_PAYOUT DRIVER_PAYOUT ADJUSTMENT }
+enum RiskLevel { LOW MEDIUM HIGH CRITICAL }
+enum AuditAction { CREATE UPDATE DELETE APPROVE REJECT LOGIN LOGOUT SUSPEND LOCK UNLOCK REFUND PAYOUT CONFIG_CHANGE SECURITY_EVENT }
+enum AdminRole { SUPER_ADMIN SECURITY_ADMIN FINANCE_ADMIN KYC_ADMIN PRODUCT_ADMIN LOGISTICS_ADMIN SUPPORT_ADMIN MODERATOR ANALYST AUDITOR }
+
+model User {
+  id              String @id @default(cuid())
+  phone           String? @unique
+  email           String? @unique
+  passwordHash    String?
+  displayName     String
+  type            UserType @default(BUYER)
+  status          AccountStatus @default(PENDING)
+  mfaEnabled      Boolean @default(false)
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+  kyc             KycProfile?
+  shop            Shop?
+  addresses       Address[]
+  sessions        Session[]
+  auditLogs       AuditLog[]
+  adminRole       AdminRole?
+  reviews         Review[]
+  orders          Order[] @relation("BuyerOrders")
+  deliveries      Delivery[]
+}
+
+model Session {
+  id           String @id @default(cuid())
+  userId       String
+  refreshHash  String
+  user         User @relation(fields:[userId], references:[id], onDelete:Cascade)
+  createdAt    DateTime @default(now())
+  expiresAt    DateTime
+  revokedAt    DateTime?
+  @@index([userId])
+}
+
+model KycProfile {
+  id           String @id @default(cuid())
+  userId       String @unique
+  status       KycStatus @default(PENDING)
+  rejectionReason String?
+  identityType String?
+  identityNumber String?
+  documents    Json?
+  submittedAt DateTime?
+  reviewedAt  DateTime?
+  user         User @relation(fields:[userId], references:[id], onDelete:Cascade)
+}
+
+model Address {
+  id          String @id @default(cuid())
+  userId      String
+  label       String
+  country     String @default("BF")
+  region      String?
+  province    String?
+  city        String?
+  sector      String?
+  neighborhood String?
+  latitude    Decimal? @db.Decimal(10,7)
+  longitude   Decimal? @db.Decimal(10,7)
+  user        User @relation(fields:[userId], references:[id], onDelete:Cascade)
+  orders      Order[]
+  @@index([userId])
+}
+
+model Shop {
+  id               String @id @default(cuid())
+  ownerId           String @unique
+  name              String
+  slug              String @unique
+  description      String?
+  logoUrl           String?
+  bannerUrl         String?
+  status            ShopStatus @default(DRAFT)
+  deliveryPolicy   DeliveryPolicy?
+  deliveryZones    Json?
+  deliveryConfig   Json?
+  country          String @default("BF")
+  region           String?
+  province         String?
+  city             String?
+  sector           String?
+  neighborhood     String?
+  latitude         Decimal? @db.Decimal(10,7)
+  longitude        Decimal? @db.Decimal(10,7)
+  verified         Boolean @default(false)
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+  owner            User @relation(fields:[ownerId], references:[id], onDelete:Cascade)
+  products         Product[]
+  orders           Order[]
+}
+
+model Category {
+  id          String @id @default(cuid())
+  name        String
+  slug        String @unique
+  parentId    String?
+  icon        String?
+  sortOrder   Int @default(0)
+  parent      Category? @relation("CategoryTree", fields:[parentId], references:[id])
+  children    Category[] @relation("CategoryTree")
+  products    Product[]
+}
+
+model Product {
+  id             String @id @default(cuid())
+  shopId         String
+  categoryId     String?
+  name           String
+  slug           String @unique
+  description    String?
+  brand          String?
+  status         ProductStatus @default(DRAFT)
+  priceXof       Int
+  wholesaleRules Json?
+  media          Json?
+  attributes     Json?
+  guarantee      Json?
+  returnPolicy   Json?
+  deliveryRules  Json?
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+  shop           Shop @relation(fields:[shopId], references:[id], onDelete:Cascade)
+  category      Category? @relation(fields:[categoryId], references:[id], onDelete:SetNull)
+  inventory      Inventory?
+  orderItems     OrderItem[]
+  reviews        Review[]
+  @@index([shopId, status])
+  @@index([categoryId, status])
+}
+
+model Inventory {
+  id             String @id @default(cuid())
+  productId      String @unique
+  realStock      Int @default(0)
+  reservedStock  Int @default(0)
+  updatedAt      DateTime @updatedAt
+  product        Product @relation(fields:[productId], references:[id], onDelete:Cascade)
+}
+
+model Order {
+  id                 String @id @default(cuid())
+  orderNumber       String @unique
+  buyerId            String
+  shopId             String
+  addressId          String?
+  status             OrderStatus @default(CREATED)
+  subtotalXof        Int
+  deliveryFeeXof     Int @default(0)
+  totalXof           Int
+  currency           String @default("XOF")
+  deliveryCodeHash   String?
+  deliveryCodeUsedAt DateTime?
+  qrTokenHash       String?
+  createdAt          DateTime @default(now())
+  updatedAt          DateTime @updatedAt
+  buyer              User @relation("BuyerOrders", fields:[buyerId], references:[id])
+  shop               Shop @relation(fields:[shopId], references:[id])
+  address            Address? @relation(fields:[addressId], references:[id], onDelete:SetNull)
+  items              OrderItem[]
+  payments           Payment[]
+  ledgerEntries      LedgerEntry[]
+  delivery           Delivery?
+  @@index([buyerId, createdAt])
+  @@index([shopId, createdAt])
+  @@index([status, createdAt])
+}
+
+model OrderItem {
+  id          String @id @default(cuid())
+  orderId     String
+  productId   String
+  productName String
+  quantity    Int
+  unitPriceXof Int
+  subtotalXof Int
+  order       Order @relation(fields:[orderId], references:[id], onDelete:Cascade)
+  product     Product @relation(fields:[productId], references:[id])
+}
+
+model Payment {
+  id          String @id @default(cuid())
+  orderId     String
+  provider    String
+  reference   String?
+  status      PaymentStatus @default(PENDING)
+  amountXof   Int
+  metadata    Json?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  order       Order @relation(fields:[orderId], references:[id], onDelete:Cascade)
+  @@index([orderId, status])
+}
+
+model LedgerEntry {
+  id          String @id @default(cuid())
+  orderId     String?
+  type        LedgerEntryType
+  amountXof   Int
+  currency    String @default("XOF")
+  reference   String?
+  metadata    Json?
+  createdAt   DateTime @default(now())
+  order       Order? @relation(fields:[orderId], references:[id], onDelete:SetNull)
+  @@index([orderId, createdAt])
+}
+
+model Delivery {
+  id            String @id @default(cuid())
+  orderId       String @unique
+  driverId      String?
+  provider      String
+  status        String
+  pickupLat     Decimal? @db.Decimal(10,7)
+  pickupLng     Decimal? @db.Decimal(10,7)
+  dropoffLat    Decimal? @db.Decimal(10,7)
+  dropoffLng    Decimal? @db.Decimal(10,7)
+  assignedAt    DateTime?
+  pickedUpAt    DateTime?
+  deliveredAt   DateTime?
+  proof         Json?
+  driver        User? @relation(fields:[driverId], references:[id], onDelete:SetNull)
+  order         Order @relation(fields:[orderId], references:[id], onDelete:Cascade)
+}
+
+model Review {
+  id          String @id @default(cuid())
+  productId   String
+  userId      String
+  rating      Int
+  body        String?
+  media       Json?
+  verifiedPurchase Boolean @default(false)
+  createdAt   DateTime @default(now())
+  product     Product @relation(fields:[productId], references:[id], onDelete:Cascade)
+  user        User @relation(fields:[userId], references:[id], onDelete:Cascade)
+  @@unique([productId, userId])
+}
+
+model FraudEvent {
+  id         String @id @default(cuid())
+  subjectType String
+  subjectId  String
+  level      RiskLevel
+  score      Int
+  rule       String
+  details    Json?
+  resolvedAt DateTime?
+  createdAt  DateTime @default(now())
+  @@index([level, createdAt])
+  @@index([subjectType, subjectId])
+}
+
+model AfisEvent {
+  id          String @id @default(cuid())
+  level       Int
+  component   String
+  reason      String
+  evidence    Json?
+  isolated    Boolean @default(false)
+  createdAt   DateTime @default(now())
+  resolvedAt  DateTime?
+  @@index([level, createdAt])
+}
+
+model AuditLog {
+  id          String @id @default(cuid())
+  actorUserId String?
+  action      AuditAction
+  objectType  String
+  objectId    String?
+  before      Json?
+  after       Json?
+  justification String?
+  ip          String?
+  userAgent   String?
+  createdAt   DateTime @default(now())
+  actor       User? @relation(fields:[actorUserId], references:[id], onDelete:SetNull)
+  @@index([objectType, objectId, createdAt])
+  @@index([actorUserId, createdAt])
+}

@@ -1,0 +1,4 @@
+'use client';
+import Link from 'next/link';
+import {Home,Grid2X2,Heart,ShoppingCart,User,Search,Bell,Store,Package} from './Icons';
+export function BuyerShell({children}:{children:React.ReactNode}){return <div className="shell"><header className="topbar"><Link href="/" className="brand"><span>🛒</span><span>Burkina</span><span>Market</span></Link><div className="search"><Search size={17}/><span style={{marginLeft:8}}>Rechercher un produit, une boutique...</span></div><Bell size={20}/><User size={20}/></header><main>{children}</main><nav className="mobile-nav"><Link className="active" href="/"><Home size={18}/><div>Accueil</div></Link><Link href="/products"><Grid2X2 size={18}/><div>Catégories</div></Link><Link href="/products"><Heart size={18}/><div>Favoris</div></Link><Link href="/checkout"><ShoppingCart size={18}/><div>Panier</div></Link><Link href="/login"><User size={18}/><div>Profil</div></Link></nav></div>}

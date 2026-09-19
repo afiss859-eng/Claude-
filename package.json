@@ -1,0 +1,18 @@
+{
+  "name": "burkina-market",
+  "private": true,
+  "version": "0.1.0",
+  "packageManager": "pnpm@10.15.0",
+  "scripts": {
+    "dev:web": "pnpm --filter @burkina/web dev",
+    "dev:api": "pnpm --filter @burkina/api dev",
+    "dev:mobile": "pnpm --filter @burkina/mobile start",
+    "build": "pnpm -r build",
+    "db:generate": "pnpm --filter @burkina/db generate",
+    "db:migrate": "pnpm --filter @burkina/db migrate",
+    "db:deploy": "pnpm --filter @burkina/db deploy"
+  },
+  "devDependencies": {
+    "typescript": "^5.9.2"
+  }
+}

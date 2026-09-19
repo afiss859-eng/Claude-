@@ -1,0 +1,1 @@
+import Link from 'next/link';export default function NotFound(){return <main style={{minHeight:'100vh',display:'grid',placeItems:'center',background:'#f5f8fc'}}><div style={{textAlign:'center'}}><h1>404</h1><p>Cette page n'existe pas.</p><Link href="/" style={{color:'#0b57d0',fontWeight:800}}>Retour à Burkina Market</Link></div></main>}

@@ -1,0 +1,2 @@
+import {BuyerShell} from '../../components/BuyerShell';
+export default function Checkout(){return <BuyerShell><div className="content" style={{maxWidth:800}}><div className="card"><h1>Commande</h1><p className="muted">Le checkout exige un panier authentifié et des moyens de paiement réellement configurés. Aucun paiement factice n'est proposé.</p><div className="empty">Aucun panier actif côté compte.</div></div></div></BuyerShell>}
